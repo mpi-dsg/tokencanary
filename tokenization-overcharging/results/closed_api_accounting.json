@@ -1,0 +1,37 @@
+{
+  "openai/gpt-4o-mini": {
+    "n": 8,
+    "reconciles": 8,
+    "median_hidden": 0.0,
+    "reasoning_field": "present/zero",
+    "logprob": "8/8 match"
+  },
+  "openai/gpt-5-nano": {
+    "n": 7,
+    "reconciles": 7,
+    "median_hidden": 0,
+    "reasoning_field": "present/nonzero",
+    "logprob": "n/a"
+  },
+  "google-compat/gemma-4-31b": {
+    "n": 8,
+    "reconciles": 0,
+    "median_hidden": 261.5,
+    "reasoning_field": "absent",
+    "logprob": "n/a"
+  },
+  "google-native/gemma-4-31b": {
+    "n": 8,
+    "reconciles": 8,
+    "median_hidden": 0.0,
+    "reasoning_field": "present/nonzero",
+    "logprob": "n/a"
+  },
+  "anthropic/claude-haiku-4-5": {
+    "n": 8,
+    "reconciles": 8,
+    "median_hidden": 0.0,
+    "reasoning_field": "present/nonzero",
+    "logprob": "n/a"
+  }
+}

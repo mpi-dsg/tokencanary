@@ -1,0 +1,573 @@
+{
+ "A_p95_main": [
+  {
+   "p": "deepinfra",
+   "m": "gemma",
+   "n": 200,
+   "inf": 167,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0019
+  },
+  {
+   "p": "deepinfra",
+   "m": "llama",
+   "n": 200,
+   "inf": 111,
+   "mean": -0.009,
+   "zero": 99.1,
+   "min": -1,
+   "max": 0,
+   "mde": 0.0228
+  },
+  {
+   "p": "fireworks",
+   "m": "gpt-oss-120b",
+   "n": 200,
+   "inf": 49,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0023
+  },
+  {
+   "p": "fireworks",
+   "m": "gpt-oss-20b",
+   "n": 200,
+   "inf": 43,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0021
+  },
+  {
+   "p": "openrouter",
+   "m": "gemma",
+   "n": 200,
+   "inf": 162,
+   "mean": 0.0062,
+   "zero": 99.4,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0157
+  },
+  {
+   "p": "openrouter",
+   "m": "llama",
+   "n": 200,
+   "inf": 79,
+   "mean": -0.038,
+   "zero": 94.9,
+   "min": -2,
+   "max": 1,
+   "mde": 0.1565
+  },
+  {
+   "p": "together",
+   "m": "gemma",
+   "n": 200,
+   "inf": 64,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0018
+  },
+  {
+   "p": "together",
+   "m": "llama",
+   "n": 200,
+   "inf": 159,
+   "mean": -0.0063,
+   "zero": 99.4,
+   "min": -1,
+   "max": 0,
+   "mde": 0.0135
+  },
+  {
+   "p": "zai",
+   "m": "glm",
+   "n": 200,
+   "inf": 13,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0028
+  }
+ ],
+ "B_p99_main": [
+  {
+   "p": "deepinfra",
+   "m": "gemma",
+   "n": 200,
+   "inf": 163,
+   "mean": -0.0061,
+   "zero": 98.8,
+   "min": -2,
+   "max": 1,
+   "mde": 0.0338
+  },
+  {
+   "p": "deepinfra",
+   "m": "llama",
+   "n": 200,
+   "inf": 94,
+   "mean": -0.0851,
+   "zero": 94.7,
+   "min": -2,
+   "max": 0,
+   "mde": 0.1198
+  },
+  {
+   "p": "fireworks",
+   "m": "gpt-oss-120b",
+   "n": 200,
+   "inf": 49,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0024
+  },
+  {
+   "p": "fireworks",
+   "m": "gpt-oss-20b",
+   "n": 200,
+   "inf": 35,
+   "mean": 0.1143,
+   "zero": 91.4,
+   "min": 0,
+   "max": 2,
+   "mde": 0.0926
+  },
+  {
+   "p": "openrouter",
+   "m": "gemma",
+   "n": 200,
+   "inf": 167,
+   "mean": -0.006,
+   "zero": 99.4,
+   "min": -1,
+   "max": 0,
+   "mde": 0.0144
+  },
+  {
+   "p": "openrouter",
+   "m": "llama",
+   "n": 200,
+   "inf": 62,
+   "mean": -0.1613,
+   "zero": 90.3,
+   "min": -4,
+   "max": 1,
+   "mde": 0.5995
+  },
+  {
+   "p": "together",
+   "m": "gemma",
+   "n": 200,
+   "inf": 67,
+   "mean": 0.0149,
+   "zero": 98.5,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0212
+  },
+  {
+   "p": "together",
+   "m": "llama",
+   "n": 200,
+   "inf": 162,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0017
+  }
+ ],
+ "C_p95_exp": [
+  {
+   "p": "deepinfra",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 198,
+   "mean": 0.0051,
+   "zero": 99.5,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0034
+  },
+  {
+   "p": "deepinfra",
+   "m": "glm",
+   "n": 200,
+   "inf": 58,
+   "mean": 0.0172,
+   "zero": 96.6,
+   "min": -1,
+   "max": 2,
+   "mde": 0.0107
+  },
+  {
+   "p": "deepinfra",
+   "m": "kimi",
+   "n": 200,
+   "inf": 171,
+   "mean": 0.0351,
+   "zero": 94.2,
+   "min": -1,
+   "max": 2,
+   "mde": 0.0108
+  },
+  {
+   "p": "fireworks",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 149,
+   "mean": 0,
+   "zero": 98.7,
+   "min": -1,
+   "max": 1,
+   "mde": 0.0036
+  },
+  {
+   "p": "fireworks",
+   "m": "glm",
+   "n": 200,
+   "inf": 146,
+   "mean": 0.0137,
+   "zero": 98.6,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0038
+  },
+  {
+   "p": "fireworks",
+   "m": "kimi",
+   "n": 200,
+   "inf": 159,
+   "mean": 0.0063,
+   "zero": 96.9,
+   "min": -1,
+   "max": 1,
+   "mde": 0.0065
+  },
+  {
+   "p": "openai",
+   "m": "gpt-4.1-nano",
+   "n": 200,
+   "inf": 195,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0017
+  },
+  {
+   "p": "openai",
+   "m": "gpt-4o-mini",
+   "n": 200,
+   "inf": 191,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0014
+  },
+  {
+   "p": "openrouter",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 155,
+   "mean": -0.1806,
+   "zero": 78.1,
+   "min": -1,
+   "max": 1,
+   "mde": 0.0167
+  },
+  {
+   "p": "openrouter",
+   "m": "kimi",
+   "n": 200,
+   "inf": 171,
+   "mean": -0.2164,
+   "zero": 69.0,
+   "min": -2,
+   "max": 2,
+   "mde": 0.0268
+  },
+  {
+   "p": "together",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 149,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0003
+  },
+  {
+   "p": "together",
+   "m": "kimi",
+   "n": 200,
+   "inf": 162,
+   "mean": 0,
+   "zero": 98.1,
+   "min": -2,
+   "max": 1,
+   "mde": 0.007
+  },
+  {
+   "p": "zai",
+   "m": "glm",
+   "n": 200,
+   "inf": 170,
+   "mean": 0.0118,
+   "zero": 98.8,
+   "min": 0,
+   "max": 1,
+   "mde": 0.003
+  }
+ ],
+ "D_p99_exp": [
+  {
+   "p": "deepinfra",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 197,
+   "mean": 0.0355,
+   "zero": 97.0,
+   "min": 0,
+   "max": 2,
+   "mde": 0.0105
+  },
+  {
+   "p": "deepinfra",
+   "m": "glm",
+   "n": 200,
+   "inf": 75,
+   "mean": -0.16,
+   "zero": 78.7,
+   "min": -2,
+   "max": 2,
+   "mde": 0.0263
+  },
+  {
+   "p": "deepinfra",
+   "m": "kimi",
+   "n": 200,
+   "inf": 161,
+   "mean": 0.6025,
+   "zero": 41.0,
+   "min": -3,
+   "max": 3,
+   "mde": 0.0248
+  },
+  {
+   "p": "fireworks",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 127,
+   "mean": 0.0079,
+   "zero": 99.2,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0032
+  },
+  {
+   "p": "fireworks",
+   "m": "glm",
+   "n": 200,
+   "inf": 139,
+   "mean": 0.0144,
+   "zero": 97.1,
+   "min": -1,
+   "max": 1,
+   "mde": 0.0055
+  },
+  {
+   "p": "fireworks",
+   "m": "kimi",
+   "n": 200,
+   "inf": 115,
+   "mean": 0.0087,
+   "zero": 96.5,
+   "min": -3,
+   "max": 2,
+   "mde": 0.0187
+  },
+  {
+   "p": "openai",
+   "m": "gpt-4.1-nano",
+   "n": 200,
+   "inf": 195,
+   "mean": 0,
+   "zero": 100.0,
+   "min": 0,
+   "max": 0,
+   "mde": 0.0016
+  },
+  {
+   "p": "openai",
+   "m": "gpt-4o-mini",
+   "n": 200,
+   "inf": 194,
+   "mean": 0.0103,
+   "zero": 99.0,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0139
+  },
+  {
+   "p": "openrouter",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 153,
+   "mean": -0.2745,
+   "zero": 71.9,
+   "min": -2,
+   "max": 1,
+   "mde": 0.0185
+  },
+  {
+   "p": "openrouter",
+   "m": "kimi",
+   "n": 200,
+   "inf": 173,
+   "mean": -0.0636,
+   "zero": 74.6,
+   "min": -2,
+   "max": 2,
+   "mde": 0.0223
+  },
+  {
+   "p": "together",
+   "m": "deepseek",
+   "n": 200,
+   "inf": 156,
+   "mean": 0.0128,
+   "zero": 98.7,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0034
+  },
+  {
+   "p": "together",
+   "m": "kimi",
+   "n": 200,
+   "inf": 156,
+   "mean": -0.0833,
+   "zero": 97.4,
+   "min": -12,
+   "max": 1,
+   "mde": 0.0357
+  }
+ ],
+ "E_round2": [
+  {
+   "p": "deepinfra",
+   "m": "gemma4-31b",
+   "n": 200,
+   "inf": 199,
+   "mean": -0.0302,
+   "zero": 99.5,
+   "min": -6,
+   "max": 0,
+   "mde": 0.0263
+  },
+  {
+   "p": "deepinfra",
+   "m": "glm-5.2",
+   "n": 200,
+   "inf": 144,
+   "mean": -0.0556,
+   "zero": 97.2,
+   "min": -7,
+   "max": 1,
+   "mde": 0.0202
+  },
+  {
+   "p": "deepinfra",
+   "m": "gpt-oss-120b",
+   "n": 200,
+   "inf": 182,
+   "mean": 1.6978,
+   "zero": 95.1,
+   "min": 0,
+   "max": 301,
+   "mde": 0.7634
+  },
+  {
+   "p": "deepinfra",
+   "m": "gpt-oss-20b",
+   "n": 200,
+   "inf": 163,
+   "mean": 9.8589,
+   "zero": 72.4,
+   "min": -1,
+   "max": 655,
+   "mde": 2.3559
+  },
+  {
+   "p": "openrouter",
+   "m": "gpt-oss-120b",
+   "n": 200,
+   "inf": 169,
+   "mean": -0.858,
+   "zero": 82.2,
+   "min": -10,
+   "max": 3,
+   "mde": 0.1038
+  },
+  {
+   "p": "openrouter",
+   "m": "gpt-oss-20b",
+   "n": 200,
+   "inf": 156,
+   "mean": -1.5833,
+   "zero": 63.5,
+   "min": -46,
+   "max": 6,
+   "mde": 0.2051
+  },
+  {
+   "p": "together",
+   "m": "gpt-oss-120b",
+   "n": 200,
+   "inf": 158,
+   "mean": 0.057,
+   "zero": 93.7,
+   "min": -1,
+   "max": 2,
+   "mde": 0.0103
+  },
+  {
+   "p": "together",
+   "m": "gpt-oss-20b",
+   "n": 200,
+   "inf": 170,
+   "mean": 0.0824,
+   "zero": 91.2,
+   "min": -1,
+   "max": 2,
+   "mde": 0.0106
+  },
+  {
+   "p": "zai",
+   "m": "glm-5.2",
+   "n": 200,
+   "inf": 159,
+   "mean": 0.0063,
+   "zero": 99.4,
+   "min": 0,
+   "max": 1,
+   "mde": 0.0026
+  }
+ ]
+}
