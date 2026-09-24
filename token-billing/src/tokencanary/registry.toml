@@ -1,0 +1,32 @@
+# Model name -> tokenizer. Patterns are case-insensitive globs; the most specific match wins,
+# and entries in the user's config override these. Unlisted `org/model` names fall back to hf:org/model.
+
+[tokenizers]
+"gpt-4o*" = "tiktoken:o200k_base"
+"chatgpt-4o*" = "tiktoken:o200k_base"
+"gpt-4.1*" = "tiktoken:o200k_base"
+"gpt-4.5*" = "tiktoken:o200k_base"
+"gpt-5*" = "tiktoken:o200k_base"
+"o1*" = "tiktoken:o200k_base"
+"o3*" = "tiktoken:o200k_base"
+"o4*" = "tiktoken:o200k_base"
+"gpt-4*" = "tiktoken:cl100k_base"
+"gpt-3.5*" = "tiktoken:cl100k_base"
+
+# OpenRouter prefixes OpenAI models with `openai/`.
+"openai/gpt-4o*" = "tiktoken:o200k_base"
+"openai/gpt-4.1*" = "tiktoken:o200k_base"
+"openai/gpt-5*" = "tiktoken:o200k_base"
+"openai/o1*" = "tiktoken:o200k_base"
+"openai/o3*" = "tiktoken:o200k_base"
+"openai/o4*" = "tiktoken:o200k_base"
+"openai/gpt-4*" = "tiktoken:cl100k_base"
+"openai/gpt-3.5*" = "tiktoken:cl100k_base"
+
+# gpt-oss on OpenAI-compatible providers (Fireworks, Together, ...).
+"*gpt-oss-*" = "tiktoken:o200k_harmony"
+
+# Llama 3.1 8B Instruct under provider-specific names (DeepInfra, Together, OpenRouter, Fireworks).
+"meta-llama/meta-llama-3.1-8b-instruct*" = "hf:meta-llama/Llama-3.1-8B-Instruct"
+"meta-llama/llama-3.1-8b-instruct*" = "hf:meta-llama/Llama-3.1-8B-Instruct"
+"accounts/fireworks/models/llama-v3p1-8b-instruct" = "hf:meta-llama/Llama-3.1-8B-Instruct"
