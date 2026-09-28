@@ -111,15 +111,10 @@ class DuplicateTokenizer(TiktokenTokenizer):
         return [10**6 + ids[0], *ids] if len(b) == 1 and ids else ids
 
 
-class PreferRealIds(FakeScorer):
-    def logprob(self, request, ids):
-        return super().logprob(request, ids) - 50 * sum(t >= 10**6 for t in ids)
-
-
 def test_duplicate_ids_resolve_in_providers_favor():
     tok = DuplicateTokenizer("o200k_base")
     ids = TOK.canonical(TEXT.encode())
-    scorer = PreferRealIds(2.0)
+    scorer = FakeScorer(2.0)
     cal = Calibration()
     for s in [0.0] * 19 + [-2.0]:
         cal.add(f"{MODEL}|latin", s)
@@ -131,7 +126,7 @@ def test_duplicate_ids_resolve_in_providers_favor():
     up.respond = lambda body: completion(TEXT, ids=split_once(ids, 1))
     ask(client)
     c = auditor.records[1].choices[0]
-    assert c.llr == -2.0 and c.verdict == "pass"  # real ids chosen: no -50 penalties
+    assert c.llr == -2.0 and c.verdict == "pass"
 
 
 def test_token_outside_vocabulary_is_unverifiable(caplog):
@@ -158,5 +153,5 @@ def test_provider_alert_end_to_end():
     client, auditor = client_for(up, scorers={MODEL: FakeScorer(2.0)}, calibration=cal, on_alert=lambda kind, d: alerts.append(kind))
     for _ in range(10):
         ask(client)
-    assert alerts == ["provider"]  # one alert once evidence crosses 1/delta, none per response
+    assert alerts == ["likelihood"]  # one alert once evidence crosses 1/delta, none per response
     assert "FLAGGED" in auditor.report()

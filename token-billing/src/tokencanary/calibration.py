@@ -34,7 +34,7 @@ def binom_cdf(k: int, n: int, p: float) -> float:
 
 
 def binom_sf(k: int, n: int, p: float) -> float:
-    """P(X >= k) for X ~ Binomial(n, p), summed directly so tiny tails stay accurate."""
+    """P(X >= k) for X ~ Binomial(n, p)."""
     if k <= 0:
         return 1.0
     return min(1.0, sum(math.comb(n, i) * p**i * (1 - p) ** (n - i) for i in range(k, n + 1)))
@@ -51,24 +51,28 @@ def conformal_threshold(scores: list[float], alpha: float) -> float:
 
 
 def excess_risk(n: int, alpha: float, rate: float) -> float:
-    """Probability over calibration draws that the threshold's true honest rejection rate exceeds `rate`.
-
-    That rate is Beta(k, n+1-k) distributed, and P(Beta(k, n+1-k) > x) = P(Binomial(n, x) <= k-1).
-    """
+    """P(honest rejection rate of the calibrated threshold > rate) = P(Bin(n, rate) <= k - 1)."""
     k = order_index(n, alpha)
     return binom_cdf(k - 1, n, rate) if k else 0.0
 
 
 class Calibration:
-    """Honest likelihood scores per `model|language` key, stored as JSON."""
+    """Honest likelihood scores, count gaps, noise margins and settings, stored as JSON."""
 
     def __init__(self, path: str | None = None):
         self.path = os.path.expanduser(path) if path else None
         self.scores: dict[str, list[float]] = {}
+        self.gaps: dict[str, list[list[int]]] = {}
+        self.margins: dict[str, float] = {}
+        self.meta: dict[str, dict] = {}
         self._lock = threading.Lock()
         if self.path and os.path.exists(self.path):
             with open(self.path) as f:
-                self.scores = json.load(f)["scores"]
+                blob = json.load(f)
+            self.scores = blob.get("scores", {})
+            self.gaps = blob.get("gaps", {})
+            self.margins = blob.get("margins", {})
+            self.meta = blob.get("meta", {})
 
     @staticmethod
     def key(model: str, language: str) -> str:
@@ -78,9 +82,24 @@ class Calibration:
         scores = self.scores.get(key)
         return conformal_threshold(scores, alpha) if scores else None
 
+    def set_meta(self, key: str, meta: dict) -> None:
+        """Record the settings of a key's scores; refuse different ones."""
+        with self._lock:
+            old = self.meta.setdefault(key, meta)
+        if old != meta:
+            raise ValueError(f"calibration {key} was computed with {old}, not {meta}")
+
     def add(self, key: str, score: float) -> None:
         with self._lock:
             self.scores.setdefault(key, []).append(score)
+
+    def add_gap(self, key: str, gap: int, canonical: int) -> None:
+        with self._lock:
+            self.gaps.setdefault(key, []).append([gap, canonical])
+
+    def raise_margin(self, model: str, margin: float) -> None:
+        with self._lock:
+            self.margins[model] = max(self.margins.get(model, 0.0), margin)
 
     def save(self, path: str | None = None) -> None:
         path = path or self.path
@@ -88,4 +107,4 @@ class Calibration:
             raise ValueError("Calibration.save needs a path")
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         with self._lock, open(path, "w") as f:
-            json.dump({"scores": self.scores}, f)
+            json.dump({"scores": self.scores, "gaps": self.gaps, "margins": self.margins, "meta": self.meta}, f)

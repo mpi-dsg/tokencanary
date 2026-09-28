@@ -11,9 +11,6 @@ dependencies = [
     "tokenizers>=0.20",
 ]
 
-[project.optional-dependencies]
-local = ["torch>=2.4", "transformers>=4.45"]
-
 [project.scripts]
 tokencanary = "tokencanary.cli:main"
 

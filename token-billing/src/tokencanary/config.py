@@ -17,8 +17,13 @@ class Config:
     min_overcharge: float = 0.001  # provider alert needs worst-case overcharge above this share
     over_cap: bool = True
     count_mismatch: bool = True
+    count_rules: bool = True  # count-only rules for responses without log-probs (needs calibration gaps)
+    batch_size: int = 100
+    batch_alpha: float = 0.05
+    batch_margin: float = 0.0005  # share of canonical tokens subtracted per response in the batch rule
     guess_hf: bool = True  # treat unknown `org/model` names as Hugging Face repos
     tokenizers: dict = dataclasses.field(default_factory=dict)  # pattern -> tokenizer spec
+    scorers: dict = dataclasses.field(default_factory=dict)  # pattern -> EchoScorer arguments
     models: dict = dataclasses.field(default_factory=dict)  # pattern -> policy overrides
     calibration: str | None = None
     log: str | None = os.path.join(HOME, "audit.jsonl")

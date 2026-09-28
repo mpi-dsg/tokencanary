@@ -10,13 +10,7 @@ GRID = [0.5 * 2.0**-j for j in range(8)]
 
 
 class Monitor:
-    """Anytime-valid test per endpoint that the likelihood-rejection rate exceeds p0.
-
-    Each tested response multiplies the evidence for bet b by 1 + (b / p0) (x - p0), x = 1 if rejected.
-    If the true rejection rate is at most p0, the averaged evidence is a nonnegative supermartingale, so by
-    Ville's inequality it ever reaches 1 / delta with probability at most delta, however long we monitor.
-    State persists across restarts; restarting from zero would give an honest provider fresh chances.
-    """
+    """Anytime-valid test that an endpoint's rejection rate exceeds p0; state persists across restarts."""
 
     def __init__(self, path: str | None = None):
         self.path = path
@@ -27,7 +21,7 @@ class Monitor:
                 self.state = json.load(f)
 
     def update(self, key: str, p0: float, delta: float, min_overcharge: float, rejected: bool, extra: int, tokens: int) -> dict:
-        """Add one tested response. Sets `flagged` once evidence >= 1/delta and worst-case overcharge >= min_overcharge."""
+        """Add one tested response; flag once evidence >= 1/delta and overcharge >= min_overcharge."""
         with self._lock:
             st = self.state.get(key)
             if st is None or st["p0"] != p0:

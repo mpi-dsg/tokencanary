@@ -14,6 +14,17 @@ guess_hf = true         # unknown `org/model` names load the Hugging Face tokeni
 over_cap = true         # billed above max_tokens
 count_mismatch = true   # billed != number of returned tokens
 
+# Count rules for responses without per-token log-probs; calibrate with `tokencanary calibrate-counts`.
+# count_rules = true
+# batch_size = 100
+# batch_alpha = 0.05
+# batch_margin = 0.0005
+
+[scorers."openai/gpt-oss-120b"]   # served model pattern -> the same weights on a scoring provider
+model = "accounts/fireworks/models/gpt-oss-120b"
+# base_url = "https://api.fireworks.ai/inference/v1"
+# api_key_env = "FIREWORKS_API_KEY"
+
 [tokenizers]            # model name pattern -> tokenizer; overrides the bundled registry
 # "my-finetune" = "hf:Qwen/Qwen2.5-7B-Instruct"
 # "ft:gpt-4o*" = "tiktoken:o200k_base"

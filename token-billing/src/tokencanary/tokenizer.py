@@ -16,6 +16,10 @@ class Unverifiable(Exception):
     pass
 
 
+class TokenMismatch(Unverifiable):
+    pass
+
+
 def _char_len(data: bytes, i: int) -> int:
     lead = data[i]
     if lead < 0x80:
@@ -68,6 +72,9 @@ class Tokenizer:
     def special_id(self, text: str) -> int | None:
         return None
 
+    def is_special(self, tid: int) -> bool:
+        return False
+
     def canonical(self, data: bytes) -> list[int]:
         """Encode valid UTF-8 runs normally and invalid spans as byte tokens."""
         ids = []
@@ -95,6 +102,7 @@ class TiktokenTokenizer(Tokenizer):
         self.enc = tiktoken.get_encoding(encoding)
         self.name = f"tiktoken:{encoding}"
         self._special = dict(self.enc._special_tokens)
+        self._special_ids = set(self._special.values())
 
     def encode(self, text):
         return self.enc.encode(text, disallowed_special=())
@@ -116,6 +124,9 @@ class TiktokenTokenizer(Tokenizer):
 
     def special_id(self, text):
         return self._special.get(text)
+
+    def is_special(self, tid):
+        return tid in self._special_ids
 
 
 @functools.cache
@@ -146,6 +157,7 @@ class HFTokenizer(Tokenizer):
         added = tok.get_added_tokens_decoder()
         self._added = {tid: t.content for tid, t in added.items()}
         self._special = {t.content: tid for tid, t in added.items() if t.special}
+        self._special_ids = set(self._special.values())
 
     @classmethod
     def from_pretrained(cls, repo: str) -> HFTokenizer:
@@ -197,6 +209,9 @@ class HFTokenizer(Tokenizer):
 
     def special_id(self, text):
         return self._special.get(text)
+
+    def is_special(self, tid):
+        return tid in self._special_ids
 
 
 def load_tokenizer(spec: str | Tokenizer) -> Tokenizer:

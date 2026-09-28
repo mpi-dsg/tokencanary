@@ -4,6 +4,7 @@ import httpx
 import openai
 
 from tokencanary import Auditor, AuditTransport, TiktokenTokenizer
+from tokencanary.scoring import divergent_spans
 
 TOK = TiktokenTokenizer("o200k_base")
 MODEL = "gpt-4o-mini"
@@ -66,14 +67,14 @@ def completion(text, ids=None, billed=None, logprobs=True):
     }
 
 
-def sse(text, ids=None, billed=None):
+def sse(text, ids=None, billed=None, finish="stop"):
     ids = TOK.canonical(text.encode()) if ids is None else ids
     events = []
     base = {"id": "chatcmpl-test", "object": "chat.completion.chunk", "created": 0, "model": MODEL}
     events.append({**base, "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "logprobs": None, "finish_reason": None}]})
     for t, e in zip(ids, entries(ids)):
         events.append({**base, "choices": [{"index": 0, "delta": {"content": TOK.token_bytes(t).decode("utf-8", "replace")}, "logprobs": {"content": [e]}, "finish_reason": None}]})
-    events.append({**base, "choices": [{"index": 0, "delta": {}, "logprobs": None, "finish_reason": "stop"}]})
+    events.append({**base, "choices": [{"index": 0, "delta": {}, "logprobs": None, "finish_reason": finish}]})
     events.append({**base, "choices": [], "usage": {"prompt_tokens": 10, "completion_tokens": len(ids) if billed is None else billed, "total_tokens": 0}})
     body = "".join(f"data: {json.dumps(e)}\n\n" for e in events) + "data: [DONE]\n\n"
     return body.encode()
@@ -98,12 +99,15 @@ class FakeUpstream:
 
 
 class FakeScorer:
-    """Every token costs `per_token` nats, so each extra token lowers the LLR by that much."""
+    """Every extra token costs `per_token` nats; ambiguous ids resolve to the smallest id."""
 
     def __init__(self, per_token=2.0):
         self.per_token = per_token
         self.calls = 0
 
-    def logprob(self, request, ids):
+    def llr(self, reported, canonical, tok):
         self.calls += 1
-        return -self.per_token * len(ids)
+        return -self.per_token * (len(reported) - len(canonical)), len(divergent_spans(tok.token_bytes, reported, canonical))
+
+    def resolve(self, candidates, tok):
+        return [min(cs) for cs in candidates]

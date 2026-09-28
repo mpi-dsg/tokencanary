@@ -1,91 +1,109 @@
 from __future__ import annotations
 
-from .calibration import Calibration, script_bucket
-from .tokenizer import HFTokenizer, Unverifiable
+import concurrent.futures
+import os
+import statistics
+
+import httpx
+
+from .tokenizer import Tokenizer, Unverifiable
+
+FIREWORKS = "https://api.fireworks.ai/inference/v1"
 
 
-class LocalHFScorer:
-    """Reference model on local weights: log p(ids | chat-templated prompt) at temperature 1."""
+def divergent_spans(token_bytes, a: list[int], b: list[int]) -> list[tuple[int, int, int, int]]:
+    """Index ranges (a_lo, a_hi, b_lo, b_hi) where two tokenizations of the same bytes differ."""
 
-    def __init__(self, model_id: str, device: str | None = None):
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+    def cuts(ids):
+        out, pos = {0: 0}, 0
+        for i, t in enumerate(ids, 1):
+            pos += len(token_bytes(t))
+            out[pos] = i
+        return out
 
-        self.torch = torch
-        self.device = device or ("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
-        self.model_id = model_id
-        self.hf_tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self.model = AutoModelForCausalLM.from_pretrained(model_id, dtype="auto").to(self.device).eval()
+    ca, cb = cuts(a), cuts(b)
+    shared = sorted(set(ca) & set(cb))
+    return [
+        (ca[lo], ca[hi], cb[lo], cb[hi])
+        for lo, hi in zip(shared, shared[1:])
+        if ca[hi] - ca[lo] != 1 or cb[hi] - cb[lo] != 1 or a[ca[lo]] != b[cb[lo]]
+    ]
 
-    def prompt_ids(self, request: dict) -> list[int]:
-        out = self.hf_tokenizer.apply_chat_template(
-            request["messages"], tools=request.get("tools"), add_generation_prompt=True, tokenize=True
-        )
-        if hasattr(out, "keys"):
-            out = out["input_ids"]
-        return list(out[0] if out and isinstance(out[0], list) else out)
 
-    def logprob(self, request: dict, ids: list[int]) -> float:
-        return self.logprob_ids(self.prompt_ids(request), ids)
+class EchoScorer:
+    """Scores token ids through a provider that echoes prompt log-probs, in windows around divergent spans."""
 
-    def logprob_ids(self, prompt: list[int], ids: list[int]) -> float:
-        torch = self.torch
-        x = torch.tensor([prompt + ids], device=self.device)
-        with torch.no_grad():
-            logits = self.model(x).logits[0, len(prompt) - 1 : -1].float()
-        target = torch.tensor(ids, device=self.device)[:, None]
-        return float(torch.log_softmax(logits, -1).gather(1, target).sum())
+    def __init__(self, model: str, base_url: str = FIREWORKS, api_key: str | None = None,
+                 api_key_env: str = "FIREWORKS_API_KEY", repeats: int = 3, context: int = 32, suffix: int = 8,
+                 workers: int = 8, http: httpx.Client | None = None):
+        self.model = model
+        self.url = base_url.rstrip("/")
+        self.repeats, self.context, self.suffix = repeats, context, suffix
+        self.pool = concurrent.futures.ThreadPoolExecutor(workers)
+        key = api_key or os.environ.get(api_key_env)
+        self.http = http or httpx.Client(timeout=60, headers={"Authorization": f"Bearer {key}"} if key else {})
 
-    def resolve(self, request: dict, candidates: list[list[int]]) -> list[int]:
-        """Left to right, pick the candidate id the model finds most likely; rerun only after a change."""
-        torch = self.torch
-        prompt = self.prompt_ids(request)
+    def fingerprint(self) -> dict:
+        """Settings that calibration and audit must share."""
+        return {"model": self.model, "base_url": self.url, "context": self.context, "suffix": self.suffix,
+                "repeats": self.repeats}
+
+    def prompt_logprobs(self, ids: list[int]) -> list[float | None]:
+        r = self.http.post(f"{self.url}/completions", json={
+            "model": self.model, "prompt": ids, "max_tokens": 1, "echo": True, "logprobs": 1, "temperature": 1.0})
+        r.raise_for_status()
+        lp = r.json()["choices"][0]["logprobs"]
+        if lp.get("token_ids", ids)[: len(ids)] != ids:
+            raise Unverifiable("scoring provider did not echo the token ids it was sent")
+        return lp["token_logprobs"][: len(ids)]
+
+    def windows(self, pairs: list[tuple[list[int], list[int]]], repeats: int | None = None) -> list[float]:
+        """log p(body | ctx) for each (ctx, body), median over repeated calls, all calls in parallel."""
+        n = repeats or self.repeats
+        calls = [self.pool.submit(self.prompt_logprobs, ctx + body) for ctx, body in pairs for _ in range(n)]
+        sums = [sum(c.result()[len(pairs[i // n][0]):]) for i, c in enumerate(calls)]
+        return [statistics.median(sums[i * n:(i + 1) * n]) for i in range(len(pairs))]
+
+    def _context(self, ids: list[int], lo: int, tok: Tokenizer) -> list[int]:
+        return ids[max(0, lo - self.context):lo] or tok.canonical(b"\n")
+
+    def llr(self, reported: list[int], canonical: list[int], tok: Tokenizer) -> tuple[float, int]:
+        """Sum over divergent spans of log p(reported window) - log p(canonical window), and the span count."""
+        spans = divergent_spans(tok.token_bytes, reported, canonical)
+        pairs = []
+        for r_lo, r_hi, c_lo, c_hi in spans:
+            ctx = self._context(canonical, c_lo, tok)
+            tail = canonical[c_hi:c_hi + self.suffix]
+            pairs += [(ctx, reported[r_lo:r_hi] + tail), (ctx, canonical[c_lo:c_hi] + tail)]
+        scores = self.windows(pairs)
+        return sum(scores[0::2]) - sum(scores[1::2]), len(spans)
+
+    def noise(self, reported: list[int], canonical: list[int], tok: Tokenizer) -> float:
+        """Largest difference between two independent window scores of the same report."""
+        pairs = []
+        for r_lo, r_hi, c_lo, c_hi in divergent_spans(tok.token_bytes, reported, canonical):
+            body = reported[r_lo:r_hi] + canonical[c_hi:c_hi + self.suffix]
+            pairs += [(self._context(canonical, c_lo, tok), body)] * 2
+        scores = self.windows(pairs)
+        return max([0.0] + [abs(a - b) for a, b in zip(scores[0::2], scores[1::2])])
+
+    def resolve(self, candidates: list[list[int]], tok: Tokenizer, limit: int = 8) -> list[int] | None:
+        """At each ambiguous position, the id the model finds most likely."""
         ids = [cs[0] for cs in candidates]
-        pending = [i for i, cs in enumerate(candidates) if len(cs) > 1]
-        while pending:
-            with torch.no_grad():
-                logits = self.model(torch.tensor([prompt + ids], device=self.device)).logits[0]
-            for n, i in enumerate(pending):
-                row = logits[len(prompt) + i - 1]
-                best = max(candidates[i], key=lambda t: float(row[t]))
-                if best != ids[i]:
-                    ids[i], pending = best, pending[n + 1:]
-                    break
-            else:
-                break
+        ambiguous = [i for i, cs in enumerate(candidates) if len(cs) > 1]
+        if len(ambiguous) > limit:
+            return None
+        for i in ambiguous:
+            ctx = self._context(ids, i, tok)
+            tail = ids[i + 1:i + 1 + self.suffix]
+            scores = self.windows([(ctx, [t] + tail) for t in candidates[i]], repeats=1)
+            ids[i] = candidates[i][scores.index(max(scores))]
         return ids
 
-    def sample(self, messages: list[dict], temperature: float, top_p: float, max_new_tokens: int) -> tuple[list[int], list[int]]:
-        """One honest response: (prompt ids, generated ids without the stop token)."""
-        torch = self.torch
-        prompt = self.prompt_ids({"messages": messages})
-        x = torch.tensor([prompt], device=self.device)
-        pad = self.hf_tokenizer.pad_token_id or self.hf_tokenizer.eos_token_id
-        with torch.no_grad():
-            out = self.model.generate(
-                x, attention_mask=torch.ones_like(x), do_sample=True, temperature=temperature,
-                top_p=top_p, top_k=0, max_new_tokens=max_new_tokens, pad_token_id=pad,
-            )
-        eos = self.model.generation_config.eos_token_id
-        stops = set(eos if isinstance(eos, list) else [eos]) | {pad}
-        gen = []
-        for t in out[0, len(prompt):].tolist():
-            if t in stops:
-                break
-            gen.append(t)
-        return prompt, gen
-
-
-def commission(scorer: LocalHFScorer, served_model: str, prompts: list[list[dict]], calibration: Calibration,
-               temperature: float = 1.0, top_p: float = 1.0, max_new_tokens: int = 512, language: str | None = None) -> None:
-    """Calibrate on honest local generations with the endpoint's weights, template and sampling."""
-    tok = HFTokenizer.from_pretrained(scorer.model_id)
-    for messages in prompts:
-        prompt, gen = scorer.sample(messages, temperature, top_p, max_new_tokens)
-        data = b"".join(map(tok.token_bytes, gen))
-        try:
-            canon = tok.canonical(data)
-        except Unverifiable:
-            continue
-        score = 0.0 if canon == gen else scorer.logprob_ids(prompt, gen) - scorer.logprob_ids(prompt, canon)
-        calibration.add(Calibration.key(served_model, language or script_bucket(data.decode(errors="replace"))), score)
+    def generate(self, messages: list[dict], temperature: float, top_p: float, max_tokens: int) -> dict:
+        """One honest chat completion with per-token log-probs, for calibration."""
+        r = self.http.post(f"{self.url}/chat/completions", json={
+            "model": self.model, "messages": messages, "temperature": temperature, "top_p": top_p,
+            "max_tokens": max_tokens, "logprobs": True})
+        r.raise_for_status()
+        return r.json()

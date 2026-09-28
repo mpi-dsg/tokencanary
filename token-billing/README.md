@@ -5,6 +5,8 @@ Checks that the output tokens you are billed for match the text you received.
 The same text can be split into tokens many ways, so a provider can report a longer
 split (`[D][a][m][a][s][c][u][s]` instead of `[Dam][ascus]`) and bill for it.
 tokencanary audits every Chat Completions response and alerts when the bill is inconsistent.
+It runs no model locally. The likelihood test scores tokens through a second provider that
+serves the same weights.
 
 ## Use
 
@@ -26,33 +28,46 @@ export OPENAI_BASE_URL=http://127.0.0.1:8787/v1
 ```
 
 Every audit is appended to `~/.tokencanary/audit.jsonl`; `tokencanary report` summarizes it.
-Alerts go to the `tokencanary` logger and to `Auditor(on_alert=f)`, called as `f(kind, detail)` with kind `"response"` or `"provider"`.
+Alerts go to the `tokencanary` logger and to `Auditor(on_alert=f)`, called as `f(kind, detail)`
+with kind `"response"`, `"likelihood"` or `"count"`.
 
 ## Checks
 
-| | Needs | Check | Alerts |
+| Check | Needs | Detects | Alerts |
 |---|---|---|---|
-| Cap | nothing | billed ≤ `max_tokens` | every violation |
-| Count | nothing | billed = number of per-token log-probs, when they spell the returned text | every mismatch |
-| Shadow bill | tokenizer | canonical token count of the text, the bill under canonical billing | never, reported only |
-| Likelihood | reference weights + calibration | `log p(reported) − log p(canonical)` below the calibrated threshold | provider-level only |
+| Output limit | usage | billed or reported tokens above `max_tokens` | every violation |
+| Token count | per-token log-probs | billed differs from the number of returned tokens | every mismatch |
+| Canonical count | tokenizer | nothing on its own; the bill under canonical billing | never, reported only |
+| Count rules | tokenizer, a trusted period of the endpoint | unusually large billed − canonical, for responses without log-probs | per endpoint |
+| Likelihood | per-token log-probs, tokenizer, scoring provider, calibration | a padded token list that matches the bill | per endpoint |
 
 The transport adds `logprobs: true` (and usage for streams) to requests and strips it
 from the response your code sees. If a model rejects that, the original request is resent.
 
+Some providers return log-probs for the whole generation, including reasoning and channel
+tokens; then the token count covers everything billed and the likelihood test uses the part
+that spells the answer. Others return log-probs for the answer only while billing hidden
+reasoning or channel tokens (gpt-oss); then the token count is skipped. Token strings that stand for part of a multi-byte
+character (shown as `�`) are aligned to the text in every possible way, and the reading most
+favorable to the provider is used. Responses cut at the output limit are counted but not
+likelihood-tested, in calibration as in audits.
+
 ## False alarms
 
 Honest models sometimes emit unusual splits, so about `alpha` of honest responses fail the
-likelihood test by design. A single rejection is logged, never alerted. The alert is on the
-provider: an anytime-valid test that its rejection rate exceeds `tolerance × alpha`, which
-fires when the evidence reaches `1 / confidence` and the worst-case overcharge (every
-rejection counted as padding) exceeds `min_overcharge`. An honest provider whose true
-rejection rate is at most `tolerance × alpha` is ever flagged with probability at most
-`confidence`, however long it is monitored. Evidence is kept in `~/.tokencanary/state.json`
-across restarts.
+likelihood test by design. A single rejection is logged, never alerted. Alerts are per
+endpoint: an anytime-valid test that the rejection rate exceeds `tolerance × alpha` fires
+when its evidence reaches `1 / confidence` and the worst-case overcharge (every rejection
+counted as padding) exceeds `min_overcharge`. An honest endpoint whose true rejection rate is
+at most `tolerance × alpha` is ever flagged with probability at most `confidence`, however
+long it is monitored. The count rules feed the same test. Evidence is kept in
+`~/.tokencanary/state.json` across restarts.
 
-The remaining risk is calibration that does not match the endpoint. tokencanary warns when
-a calibration set is too small for the chosen `alpha` and `tolerance`.
+The remaining risk is calibration that does not match the endpoint. A calibration file records
+the tokenizer, scorer and sampling settings it was computed with. Responses whose tokenizer,
+scorer, temperature or top-p differ are not tested; a different system prompt gives a warning.
+tokencanary also warns when a calibration set is too small for the chosen `alpha` and
+`tolerance`, and when the scoring provider is the audited provider.
 
 ## Configuration
 
@@ -64,6 +79,10 @@ alpha = 0.01
 tolerance = 3
 confidence = 1e-6
 min_overcharge = 0.001
+calibration = "~/.tokencanary/calibration.json"
+
+[scorers."openai/gpt-oss-120b"]
+model = "accounts/fireworks/models/gpt-oss-120b"
 
 [tokenizers]
 "my-finetune" = "hf:Qwen/Qwen2.5-7B-Instruct"
@@ -80,33 +99,45 @@ unverifiable and tokencanary warns that the entry is probably wrong.
 
 ## Likelihood test
 
-Scores use local weights, which must be the weights the provider serves. Calibrate per
-language with the endpoint's system prompt and sampling settings:
+The scorer sends token ids to a second provider that serves the same weights and reads back
+their log-probs (`echo`). It needs an endpoint that accepts token-id prompts; Fireworks does,
+OpenRouter does not. The key is read from `FIREWORKS_API_KEY`, or the variable named by
+`api_key_env`. Each span where the reported and canonical tokenizations differ is scored in a
+local window, three times, and the median is used.
+
+Calibrate per language with the endpoint's system prompt and sampling settings. The command
+samples honest responses from the scoring provider and scores them like audited ones:
 
 ```bash
-tokencanary calibrate --model-id Qwen/Qwen2.5-7B-Instruct --served-model my-model \
+tokencanary calibrate --served-model openai/gpt-oss-120b \
+  --scorer-model accounts/fireworks/models/gpt-oss-120b \
   --prompts prompts_de.txt --language de --top-p 0.95 --out ~/.tokencanary/calibration.json
 ```
 
-```python
-from tokencanary.scoring import LocalHFScorer
+Calibrate the count rules on a period in which you trust the audited endpoint, from its audit log:
 
-auditor = tokencanary.Auditor(scorers={"my-model": LocalHFScorer("Qwen/Qwen2.5-7B-Instruct")},
-                              calibration="~/.tokencanary/calibration.json")
-client = OpenAI(http_client=tokencanary.http_client(auditor))
-client.chat.completions.create(..., extra_headers={"x-tokencanary-language": "de"})
+```bash
+tokencanary calibrate-counts --model my-model --host api.example.com \
+  --since 2026-09-01 --until 2026-09-14 --out ~/.tokencanary/calibration.json
 ```
 
-Without a language header, responses are keyed by their dominant script (latin, cjk, arabic, ...).
-When several token ids share the same bytes, the reading the model finds most likely is used.
+The likelihood test scores local windows around divergent spans (the paper's cross-provider
+statistic), not the full prompt: a customer cannot see how the endpoint serializes the prompt.
 
-Demo with a padding provider, no API key: `uv run --extra local python examples/local_attack_demo.py`.
-Live check with your keys: `uv run python examples/smoke_test.py`.
+Pass the language per request with `extra_headers={"x-tokencanary-language": "de"}`. Without it,
+responses are keyed by their dominant script (latin, cjk, arabic, ...). When several token ids
+share the same bytes, the reading the scoring model finds most likely is used.
 
-## Limits
+Live check with your keys: `uv run python examples/live_check.py`.
 
-- Without the likelihood test, a provider that fakes a log-prob array matching its bill passes.
-- Padding that stays above the threshold passes. That is a small share of tokens, but not zero.
-- Endpoints without per-token log-probs (e.g. Claude, Gemini) get only the cap check and the shadow bill.
+## Not implemented
+
+- The paper's aggregate stream test and its bound on undetected additions. They need the model's
+  full next-token distributions at every step, which scoring APIs do not return.
+- Padding that stays above the threshold on every response therefore passes. In the paper's
+  evaluation a test-aware provider hid up to 1.4% of generated tokens this way; that figure is
+  a lower bound from an incomplete search.
+- Closed models served by a single provider cannot be scored independently.
+- Endpoints without per-token log-probs (e.g. Claude, Gemini) get only the output-limit check,
+  the canonical count and the count rules.
 - Hidden reasoning tokens, cache accounting, and model substitution are not checked.
-- A constant billed − returned offset on one endpoint can come from structural tokens the log-probs omit.

@@ -144,7 +144,7 @@ class _Stream:
         if obj.get("usage"):
             self.usage = obj["usage"]
         for ch in obj.get("choices") or []:
-            st = self.choices.setdefault(ch.get("index", 0), {"text": [], "logprobs": None, "tools": False})
+            st = self.choices.setdefault(ch.get("index", 0), {"text": [], "logprobs": None, "tools": False, "finish": None})
             delta = ch.get("delta") or {}
             st["text"].append(delta.get("content") or "")
             st["tools"] |= bool(delta.get("tool_calls"))
@@ -152,6 +152,7 @@ class _Stream:
                 st["logprobs"] = st["logprobs"] or []
                 st["logprobs"].extend(lp)
             if ch.get("finish_reason"):
+                st["finish"] = ch["finish_reason"]
                 self.finished = True
 
     def finalize(self) -> None:
@@ -163,6 +164,7 @@ class _Stream:
                 "index": i,
                 "message": {"content": "".join(st["text"]), "tool_calls": [{}] if st["tools"] else None},
                 "logprobs": {"content": st["logprobs"]} if st["logprobs"] is not None else None,
+                "finish_reason": st["finish"],
             }
             for i, st in sorted(self.choices.items())
         ]
@@ -259,13 +261,9 @@ class AsyncAuditTransport(httpx.AsyncBaseTransport):
 
 def http_client(auditor: Auditor | None = None, **kw) -> httpx.Client:
     """`OpenAI(http_client=tokencanary.http_client())`; keyword arguments go to Auditor."""
-    from openai import DefaultHttpxClient
-
-    return DefaultHttpxClient(transport=AuditTransport(auditor or Auditor(**kw)))
+    return httpx.Client(transport=AuditTransport(auditor or Auditor(**kw)), timeout=600, follow_redirects=True)
 
 
 def async_http_client(auditor: Auditor | None = None, **kw) -> httpx.AsyncClient:
     """`AsyncOpenAI(http_client=tokencanary.async_http_client())`; keyword arguments go to Auditor."""
-    from openai import DefaultAsyncHttpxClient
-
-    return DefaultAsyncHttpxClient(transport=AsyncAuditTransport(auditor or Auditor(**kw)))
+    return httpx.AsyncClient(transport=AsyncAuditTransport(auditor or Auditor(**kw)), timeout=600, follow_redirects=True)
