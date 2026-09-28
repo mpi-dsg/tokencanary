@@ -56,11 +56,9 @@ likelihood-tested, in calibration as in audits.
 
 Honest models sometimes emit unusual splits, so about `alpha` of honest responses fail the
 likelihood test by design. A single rejection is logged, never alerted. Alerts are per
-endpoint: an anytime-valid test that the rejection rate exceeds `tolerance × alpha` fires
-when its evidence reaches `1 / confidence` and the worst-case overcharge (every rejection
-counted as padding) exceeds `min_overcharge`. An honest endpoint whose true rejection rate is
-at most `tolerance × alpha` is ever flagged with probability at most `confidence`, however
-long it is monitored. The count rules feed the same test. Evidence is kept in
+endpoint: a sequential test that the rejection rate exceeds `tolerance × alpha` alerts when
+its evidence reaches `1 / confidence` and the worst-case overcharge (every rejection counted
+as padding) exceeds `min_overcharge`. The count rules feed the same test. Evidence is kept in
 `~/.tokencanary/state.json` across restarts.
 
 The remaining risk is calibration that does not match the endpoint. A calibration file records

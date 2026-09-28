@@ -2,7 +2,7 @@
 
 alpha = 0.01            # share of honest responses the per-response likelihood test rejects
 tolerance = 3           # provider alert needs a rejection rate above tolerance * alpha
-confidence = 1e-6       # chance that an honest provider is ever flagged
+confidence = 1e-6       # endpoint alert when evidence reaches 1 / confidence
 min_overcharge = 0.001  # provider alert needs a worst-case overcharge above 0.1% of tokens
 guess_hf = true         # unknown `org/model` names load the Hugging Face tokenizer of that repo
 

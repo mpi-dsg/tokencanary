@@ -10,7 +10,7 @@ GRID = [0.5 * 2.0**-j for j in range(8)]
 
 
 class Monitor:
-    """Anytime-valid test that an endpoint's rejection rate exceeds p0; state persists across restarts."""
+    """Sequential test that an endpoint's rejection rate exceeds p0; state persists across restarts."""
 
     def __init__(self, path: str | None = None):
         self.path = path

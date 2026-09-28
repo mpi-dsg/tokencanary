@@ -13,7 +13,7 @@ POLICY_KEYS = {"alpha", "tolerance", "confidence", "min_overcharge", "over_cap",
 class Config:
     alpha: float = 0.01  # per-response false-alarm level of the likelihood test
     tolerance: float = 3.0  # provider alert needs rejection rate > tolerance * alpha
-    confidence: float = 1e-6  # chance an honest provider is ever flagged
+    confidence: float = 1e-6  # endpoint alert when evidence reaches 1 / confidence
     min_overcharge: float = 0.001  # provider alert needs worst-case overcharge above this share
     over_cap: bool = True
     count_mismatch: bool = True
