@@ -1,0 +1,18 @@
+# Secrets. Holds live API keys for seven paid accounts.
+.env
+
+# Environment and caches
+.venv/
+__pycache__/
+*.pyc
+.tokenizer_cache/
+.pytest_cache/
+
+# Run logs. High-volume daemon stdout; results/*.jsonl is the durable record.
+logs/
+*.log
+
+# Internal working material, not part of the replication package
+session-transcript-*.txt
+thoughts.txt
+stupid-paper.pdf
