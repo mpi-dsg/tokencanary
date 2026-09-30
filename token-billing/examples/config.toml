@@ -1,0 +1,33 @@
+# Copy to ~/.tokencanary/config.toml (or point TOKENCANARY_CONFIG at it). All keys are optional.
+
+alpha = 0.01            # share of honest responses the per-response likelihood test rejects
+tolerance = 3           # provider alert needs a rejection rate above tolerance * alpha
+confidence = 1e-6       # endpoint alert when evidence reaches 1 / confidence
+min_overcharge = 0.001  # provider alert needs a worst-case overcharge above 0.1% of tokens
+guess_hf = true         # unknown `org/model` names load the Hugging Face tokenizer of that repo
+
+# calibration = "~/.tokencanary/calibration.json"
+# log = "~/.tokencanary/audit.jsonl"
+# state = "~/.tokencanary/state.json"
+
+[checks]
+over_cap = true         # billed above max_tokens
+count_mismatch = true   # billed != number of returned tokens
+
+# Count rules for responses without per-token log-probs; calibrate with `tokencanary calibrate-counts`.
+# count_rules = true
+# batch_size = 100
+# batch_alpha = 0.05
+# batch_margin = 0.0005
+
+[scorers."openai/gpt-oss-120b"]   # served model pattern -> the same weights on a scoring provider
+model = "accounts/fireworks/models/gpt-oss-120b"
+# base_url = "https://api.fireworks.ai/inference/v1"
+# api_key_env = "FIREWORKS_API_KEY"
+
+[tokenizers]            # model name pattern -> tokenizer; overrides the bundled registry
+# "my-finetune" = "hf:Qwen/Qwen2.5-7B-Instruct"
+# "ft:gpt-4o*" = "tiktoken:o200k_base"
+
+[models."meta-llama/*"] # per-model overrides; the most specific pattern wins
+tolerance = 5
